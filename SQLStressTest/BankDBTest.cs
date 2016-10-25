@@ -9,11 +9,15 @@ namespace SQLStressTest
 {
     class BankDBTest
     {
+        public static string connetionString = "Data Source=SQL-SRV-2016\\SQLSRV2016;Initial Catalog=BankTestDB;User ID=sa;Password=";
+        public static SqlConnection cnn = null;
+
         static void Main(string[] args)
         {
-            string connetionString = null;
-            SqlConnection cnn;
-            connetionString = "Data Source=SQL-SRV-2016\\SQLSRV2016;Initial Catalog=BankTestDB;User ID=sa;Password=saPwd123";
+            Console.Write("Enter password: ");
+            string pwd = Console.ReadLine();
+            connetionString += pwd;
+
             cnn = new SqlConnection(connetionString);
             try
             {
