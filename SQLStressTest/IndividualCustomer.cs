@@ -6,15 +6,18 @@ using System.Threading.Tasks;
 
 namespace SQLStressTest
 {
+
     public class IndividualCustomer : Customer
     {
         private int _phoneNo;
         private int _age;
         private int _gender;
 
+        public IndividualCustomer() { }
+
         public IndividualCustomer(int _custId,
                                   string _firstName,
-                                  string _lastName,
+                                  string _lastName, 
                                   int _phoneNo,
                                   int _age,
                                   int _gender,

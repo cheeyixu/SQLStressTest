@@ -11,6 +11,8 @@ namespace SQLStressTest
         private string _organizationName;
         private string _organizationType;
 
+        public EnterpriseCustomer() { }
+
         public EnterpriseCustomer(int _custId,
                                   string _firstName,
                                   string _lastName,
