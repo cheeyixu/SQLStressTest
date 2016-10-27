@@ -68,7 +68,7 @@ namespace SQLStressTest
                 {
                     cnn.Open();
 
-                    InsertCustomersToDatabase(cnn, 3);
+                    InsertAccountsToDatabase(cnn, 3);
 
                     cnn.Close();
                 }
@@ -126,8 +126,15 @@ namespace SQLStressTest
 
         private static Account CreateAccount()
         {
-            
-            return null;
+            Randomizer rand = new Randomizer();
+
+            return new Account()
+            {
+                AccountType = rand.Enum<_AccountType>().ToString(),
+                Status = rand.Enum<_AccountStatus>().ToString(),
+                Balance = rand.Number(0, 1000000),
+                CustId = rand.Number(0, 10000000)
+            };
         }
 
         private static string SqlInsert(string table, string[] columns, string[] values)
@@ -219,17 +226,25 @@ namespace SQLStressTest
 
                 if (_cust.CustomerType == _CustomerType.Individual.ToString())
                 {
-                    IndividualCustomer tempCust = (IndividualCustomer)o;
+                    IndividualCustomer tempCust = (IndividualCustomer)_cust;
                     temp.Add(tempCust.PhoneNo.ToString());
                     temp.Add(tempCust.Age.ToString());
                     temp.Add(tempCust.Gender.ToString());
                 }
                 else if (_cust.CustomerType == _CustomerType.Enterprise.ToString())
                 {
-                    EnterpriseCustomer tempCust = (EnterpriseCustomer)o;
+                    EnterpriseCustomer tempCust = (EnterpriseCustomer)_cust;
                     temp.Add(tempCust.OrganizationName);
                     temp.Add(tempCust.OrganizationType);
                 }
+            }
+            else if (o is Account)
+            {
+                Account _acc = (Account)o;
+                temp.Add(_acc.AccountType);
+                temp.Add(_acc.Status);
+                temp.Add(_acc.Balance.ToString());
+                temp.Add(_acc.CustId.ToString());
             }
 
             return (string[])temp.ToArray(typeof(string));
@@ -252,6 +267,36 @@ namespace SQLStressTest
                 using(SqlCommand command = new SqlCommand(strCommand, cnn))
                 {
                     command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private static void InsertAccountsToDatabase(SqlConnection cnn, int numAcc = 1)
+        {
+            Randomizer rand = new Randomizer();
+            string strCommand = "";
+            int i = 0;
+
+            while (i < numAcc)
+            {
+                var acc = CreateAccount();
+                strCommand = SqlInsert("Account", AccountColumns, ToValueArray(acc));
+
+                using (SqlCommand command = new SqlCommand(strCommand, cnn))
+                {
+                    try
+                    {
+                        command.ExecuteNonQuery();
+                        i++;
+                    }
+                    catch (SqlException ex)
+                    {
+                        if (ex.ErrorCode == 547)    //Referential Integrity error. Try again with another Account.Customer_Id
+                        {
+                            i--;
+                            continue;
+                        }
+                    }
                 }
             }
         }

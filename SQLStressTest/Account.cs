@@ -14,6 +14,8 @@ namespace SQLStressTest
         private int _balance;
         private int _custId;
 
+        public Account() { }
+
         public Account(int _accId,
                        string _accountType,
                        string _status,
