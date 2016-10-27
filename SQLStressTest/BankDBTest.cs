@@ -298,6 +298,7 @@ namespace SQLStressTest
                 {
                     command.ExecuteNonQuery();
                 }
+                //Not sure if I need to dispose the object here for every iteration, need to read MSDN about this
             }
         }
 
@@ -329,6 +330,7 @@ namespace SQLStressTest
                         }
                     }
                 }
+                //Not sure if I need to dispose the object here for every iteration, need to read MSDN about this
             }
         }
 
@@ -367,6 +369,7 @@ namespace SQLStressTest
                         break;
                     }
                 }
+                //Not sure if I need to dispose the object here for every iteration, need to read MSDN about this
             }
         }
     }
