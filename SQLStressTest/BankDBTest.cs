@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
@@ -12,8 +13,8 @@ namespace SQLStressTest
     {
         public static string connetionString = "Data Source=SQL-SRV-2016\\SQLSRV2016;Initial Catalog=BankTestDB;User ID=sa;Password=";
         public static SqlConnection cnn = null;
-        private static string[] IndividualCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Phone", "Age", "Gender", "Street", "City", "State", "Postal_Code" };
-        private static string[] EnterpriseCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Organization_Name", "Organization_Type", "Street", "City", "State", "Postal_Code" };
+        private static string[] IndividualCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Phone", "Age", "Gender" };
+        private static string[] EnterpriseCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Organization_Name", "Organization_Type" };
 
         public enum Gender
         {
@@ -50,16 +51,8 @@ namespace SQLStressTest
                 try
                 {
                     cnn.Open();
-                    Console.WriteLine("Connection Open ! ");
-                    IndividualCustomer customer = (IndividualCustomer)CreateCustomer(_CustomerType.Individual);
-                    string[] values = { customer.CustomerType, customer.FirstName, customer.LastName, customer.PhoneNo.ToString(), customer.Age.ToString(), customer.Gender.ToString(), customer.Street, customer.City, customer.State, customer.Zipcode.ToString() };
-                    string strCommand = SqlInsert("Customer", IndividualCustomerColumns, values);
-                    Console.WriteLine(strCommand);
-                    using (SqlCommand command = new SqlCommand(strCommand, cnn))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                   
+
+                    InsertCustomersToDatabase(cnn, 4);
 
                     cnn.Close();
                 }
@@ -67,6 +60,19 @@ namespace SQLStressTest
                 {
                     Console.WriteLine("Can not open connection ! " + ex.ToString());
                 }
+            }
+            Console.ReadLine();
+        }
+
+        private static void DisplayResults(SqlDataReader reader)
+        {
+            // Display the data within the reader.
+            while (reader.Read())
+            {
+                // Display all the columns. 
+                for (int i = 0; i < reader.FieldCount; i++)
+                    Console.Write("{0} ", reader.GetValue(i));
+                Console.WriteLine();
             }
         }
 
@@ -191,20 +197,53 @@ namespace SQLStressTest
             else 
                 return "DELETE FROM " + table + " WHERE " + conditions;
         }
-
-        private static void CreateCommand(string queryString, string connectionString)
+       
+        private static string[] ToValueArray(Customer _cust)
         {
-            using (SqlConnection connection = new SqlConnection(
-                       connectionString))
+            ArrayList temp = new ArrayList();
+
+            temp.Add(_cust.CustomerType);
+            temp.Add(_cust.FirstName);
+            temp.Add(_cust.LastName);
+            temp.Add(_cust.Street);
+            temp.Add(_cust.City);
+            temp.Add(_cust.State);
+            temp.Add(_cust.Zipcode.ToString());
+
+            if(_cust.CustomerType == _CustomerType.Individual.ToString())
             {
-                SqlCommand command = new SqlCommand(
-                    queryString, connection);
-                connection.Open();
-                SqlDataReader reader = command.ExecuteReader();
-                while (reader.Read())
+                IndividualCustomer tempCust = (IndividualCustomer)_cust;
+                temp.Add(tempCust.PhoneNo.ToString());
+                temp.Add(tempCust.Age.ToString());
+                temp.Add(tempCust.Gender.ToString());
+            }
+            else if (_cust.CustomerType == _CustomerType.Enterprise.ToString())
+            {
+                EnterpriseCustomer tempCust = (EnterpriseCustomer)_cust;
+                temp.Add(tempCust.OrganizationName);
+                temp.Add(tempCust.OrganizationType);
+            }
+
+            return (string[])temp.ToArray(typeof(string));
+        }
+
+        private static void InsertCustomersToDatabase(SqlConnection cnn, int numCust = 1)
+        {
+            Randomizer rand = new Randomizer();
+            string strCommand = "";
+
+            for(int i = 0; i < numCust; i++)
+            {
+                var randCustType = rand.Enum<_CustomerType>();
+                var cust = CreateCustomer(randCustType);
+                if (randCustType == _CustomerType.Individual)
+                    strCommand = SqlInsert("Customer", IndividualCustomerColumns, ToValueArray(cust));
+                else if (randCustType == _CustomerType.Enterprise)
+                    strCommand = SqlInsert("Customer", EnterpriseCustomerColumns, ToValueArray(cust));
+
+                using(SqlCommand command = new SqlCommand(strCommand, cnn))
                 {
-                    Console.WriteLine(String.Format("{0}, {1}",
-                        reader[0], reader[1]));
+                    command.ExecuteNonQuery();
                 }
             }
         }
