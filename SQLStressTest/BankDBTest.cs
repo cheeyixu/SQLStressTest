@@ -54,15 +54,11 @@ namespace SQLStressTest
         public enum _AccountStatus
         {
             Active,
-            Pending
+            Expiring
         }
 
         public static void Main(string[] args)
         {
-            CreateTransaction();
-            Console.ReadLine();
-            return;
-
             Console.Write("Enter password: ");
             string pwd = Console.ReadLine();
             connetionString += pwd;
@@ -73,16 +69,18 @@ namespace SQLStressTest
                 {
                     cnn.Open();
 
-                    InsertAccountsToDatabase(cnn, 3);
+                    InsertCustomersToDatabase(cnn);
+                    InsertAccountsToDatabase(cnn);
+                    InsertTransactionsToDatabase(cnn);
 
                     cnn.Close();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Can not open connection ! " + ex.ToString());
+                    Console.WriteLine(ex.ToString());
                 }
             }
-            Console.ReadLine();
+            //Console.ReadLine();
         }
 
         private static Customer CreateCustomer(_CustomerType type)
@@ -144,19 +142,20 @@ namespace SQLStressTest
 
         private static Transaction CreateTransaction()
         {
-            var timestamp = new Bogus.DataSets.Date();  //Not sure if varchar (eg. 10/11/2016 12:41:39 PM) or int (eg.201610111241) is better
+            var timestamp = new Bogus.DataSets.Date();  
             var rand = new Randomizer();
 
-            Transaction transaction = new Transaction();
+            int accIdFrom = rand.Number(1, 12);
+            int accIdTo = rand.Number(1, 12); //Contraint that check accIdFrom and accIdTo added in SSMS
 
-            transaction.TimeStamp = int.Parse(timestamp.Recent(100).ToString("yyyyMMddHHmmss"));
-            transaction.AccIdFrom = rand.Number(1, 100000);
-            transaction.AccIdTo = rand.Number(1, 100000);
-            transaction.Amount = rand.Number(1, 999999);
-            //transaction
-
-
-            return transaction;
+            return new Transaction()
+            {
+                TimeStamp = timestamp.Recent(100).ToString(),
+                AccIdFrom = accIdFrom,
+                AccIdTo = accIdTo,
+                Amount = rand.Number(1, 999999),
+                Description = string.Format("From {0} to {1}", accIdFrom, accIdTo)
+            };
         }
 
         private static string SqlInsert(string table, string[] columns, string[] values)
@@ -268,6 +267,15 @@ namespace SQLStressTest
                 temp.Add(_acc.Balance.ToString());
                 temp.Add(_acc.CustId.ToString());
             }
+            else if (o is Transaction)
+            {
+                Transaction _txn = (Transaction)o;
+                temp.Add(_txn.TimeStamp);
+                temp.Add(_txn.Amount.ToString());
+                temp.Add(_txn.Description);
+                temp.Add(_txn.AccIdTo.ToString());
+                temp.Add(_txn.AccIdFrom.ToString());
+            }
 
             return (string[])temp.ToArray(typeof(string));
         }
@@ -303,7 +311,6 @@ namespace SQLStressTest
             {
                 var acc = CreateAccount();
                 strCommand = SqlInsert("Account", AccountColumns, ToValueArray(acc));
-                Console.WriteLine(strCommand);
 
                 using (SqlCommand command = new SqlCommand(strCommand, cnn))
                 {
@@ -320,6 +327,44 @@ namespace SQLStressTest
                             i--;
                             continue;
                         }
+                    }
+                }
+            }
+        }
+
+        private static void InsertTransactionsToDatabase(SqlConnection cnn, int numTxn = 1)
+        {
+            Randomizer rand = new Randomizer();
+            string strCommand = "";
+            int i = 0;
+
+            while (i < numTxn)
+            {
+                var txn = CreateTransaction();
+                strCommand = SqlInsert("[Transaction]", TransactionColumns, ToValueArray(txn));
+                Console.WriteLine(strCommand);
+
+                using (SqlCommand command = new SqlCommand(strCommand, cnn))
+                {
+                    try
+                    {
+                        command.ExecuteNonQuery();
+                        i++;
+                    }
+                    catch (SqlException ex)
+                    {
+                        //Contraints errors, contraints for amount have to be smaller than 
+                        //or equal to Account_Id_From's balance was defined in SSMS
+                        if (ex.ErrorCode == 547)
+                        {
+                            i--;
+                            continue;
+                        }
+                    }
+                    catch   //Other exception
+                    {
+                        Console.WriteLine("Unexpected error!");
+                        break;
                     }
                 }
             }

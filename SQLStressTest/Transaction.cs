@@ -9,7 +9,7 @@ namespace SQLStressTest
     public class Transaction
     {
         private int _txnId;
-        private int _timeStamp;
+        private string _timeStamp;
         private int _amount;
         private string _description;
         private int _accIdTo;
@@ -18,7 +18,7 @@ namespace SQLStressTest
         public Transaction() { }
 
         public Transaction(int _txnId,
-                           int _timeStamp,
+                           string _timeStamp,
                            int _amount,
                            string _description,
                            int _accIdTo,
@@ -33,7 +33,7 @@ namespace SQLStressTest
         }
 
         public int TxnId { get { return _txnId; } set { _txnId = value; } }
-        public int TimeStamp { get { return _timeStamp; } set { _timeStamp = value; } }
+        public string TimeStamp { get { return _timeStamp; } set { _timeStamp = value; } }
         public int Amount { get { return _amount; } set { _amount = value; } }
         public string Description { get { return _description; } set { _description = value; } }
         public int AccIdTo { get { return _accIdTo; } set { _accIdTo = value; } }
