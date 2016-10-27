@@ -15,8 +15,9 @@ namespace SQLStressTest
         public static SqlConnection cnn = null;
         private static string[] IndividualCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Phone", "Age", "Gender" };
         private static string[] EnterpriseCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Organization_Name", "Organization_Type" };
+        private static string[] AccountColumns = { "Account_Type", "Status", "Balance", "Customer_Id" };
 
-        public enum Gender
+        public enum _Gender
         {
             Male,
             Female
@@ -40,6 +41,21 @@ namespace SQLStressTest
             Government
         }
 
+        public enum _AccountType
+        {
+            Savings,
+            Current,
+            BasicChecking,
+            InterestBearingChecking,
+            MoneyMarketDeposit
+        }
+
+        public enum _AccountStatus
+        {
+            Active,
+            Pending
+        }
+
         public static void Main(string[] args)
         {
             Console.Write("Enter password: ");
@@ -52,7 +68,7 @@ namespace SQLStressTest
                 {
                     cnn.Open();
 
-                    InsertCustomersToDatabase(cnn, 4);
+                    InsertCustomersToDatabase(cnn, 3);
 
                     cnn.Close();
                 }
@@ -61,19 +77,7 @@ namespace SQLStressTest
                     Console.WriteLine("Can not open connection ! " + ex.ToString());
                 }
             }
-            Console.ReadLine();
-        }
-
-        private static void DisplayResults(SqlDataReader reader)
-        {
-            // Display the data within the reader.
-            while (reader.Read())
-            {
-                // Display all the columns. 
-                for (int i = 0; i < reader.FieldCount; i++)
-                    Console.Write("{0} ", reader.GetValue(i));
-                Console.WriteLine();
-            }
+            /*Console.ReadLine();*/
         }
 
         private static Customer CreateCustomer(_CustomerType type)
@@ -97,7 +101,7 @@ namespace SQLStressTest
                     Zipcode = int.Parse(address.ZipCode("######")),
                     PhoneNo = int.Parse(phoneNo.PhoneNumber("########")),
                     Age = random.Number(18, 100),
-                    Gender = (int)random.Enum<Gender>()
+                    Gender = (int)random.Enum<_Gender>()
                 };
             }
             else if (type == _CustomerType.Enterprise)
@@ -130,7 +134,7 @@ namespace SQLStressTest
         {
             string strColumn = "", strValue = "";
 
-            for(int i = 0; i < Math.Max(columns.Length, values.Length); i++)
+            for(int i = 0; i < Math.Max(columns.Length, values.Length); i++)    //Length of columns and values should always be the same, but just in case.
             {
                 try
                 {
@@ -198,30 +202,34 @@ namespace SQLStressTest
                 return "DELETE FROM " + table + " WHERE " + conditions;
         }
        
-        private static string[] ToValueArray(Customer _cust)
+        private static string[] ToValueArray(object o)
         {
             ArrayList temp = new ArrayList();
 
-            temp.Add(_cust.CustomerType);
-            temp.Add(_cust.FirstName);
-            temp.Add(_cust.LastName);
-            temp.Add(_cust.Street);
-            temp.Add(_cust.City);
-            temp.Add(_cust.State);
-            temp.Add(_cust.Zipcode.ToString());
+            if (o is Customer)
+            {
+                Customer _cust = (Customer)o;
+                temp.Add(_cust.CustomerType);
+                temp.Add(_cust.FirstName);
+                temp.Add(_cust.LastName);
+                temp.Add(_cust.Street);
+                temp.Add(_cust.City);
+                temp.Add(_cust.State);
+                temp.Add(_cust.Zipcode.ToString());
 
-            if(_cust.CustomerType == _CustomerType.Individual.ToString())
-            {
-                IndividualCustomer tempCust = (IndividualCustomer)_cust;
-                temp.Add(tempCust.PhoneNo.ToString());
-                temp.Add(tempCust.Age.ToString());
-                temp.Add(tempCust.Gender.ToString());
-            }
-            else if (_cust.CustomerType == _CustomerType.Enterprise.ToString())
-            {
-                EnterpriseCustomer tempCust = (EnterpriseCustomer)_cust;
-                temp.Add(tempCust.OrganizationName);
-                temp.Add(tempCust.OrganizationType);
+                if (_cust.CustomerType == _CustomerType.Individual.ToString())
+                {
+                    IndividualCustomer tempCust = (IndividualCustomer)o;
+                    temp.Add(tempCust.PhoneNo.ToString());
+                    temp.Add(tempCust.Age.ToString());
+                    temp.Add(tempCust.Gender.ToString());
+                }
+                else if (_cust.CustomerType == _CustomerType.Enterprise.ToString())
+                {
+                    EnterpriseCustomer tempCust = (EnterpriseCustomer)o;
+                    temp.Add(tempCust.OrganizationName);
+                    temp.Add(tempCust.OrganizationType);
+                }
             }
 
             return (string[])temp.ToArray(typeof(string));
