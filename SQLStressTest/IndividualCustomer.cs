@@ -25,7 +25,7 @@ namespace SQLStressTest
                                   string _city = null, 
                                   string _state = null, 
                                   int _zipcode = 0,
-                                  int _customerType = 0) : base(_custId, _firstName, _lastName, _street, _city, _state, _zipcode, _customerType)
+                                  string _customerType = null) : base(_custId, _firstName, _lastName, _street, _city, _state, _zipcode, _customerType)
         {
             this._phoneNo = _phoneNo;
             this._age = _age;

@@ -14,8 +14,7 @@ namespace SQLStressTest
         private string _city;
         private string _state;
         private int _zipcode;
-        // 0 = Individual Customer, 1 = Enterprise Customer
-        private int _customerType;
+        private string _customerType;
         private string _firstName;
         private string _lastName;
         private static int _numCust = 0;
@@ -32,7 +31,7 @@ namespace SQLStressTest
                          string _city = null, 
                          string _state = null, 
                          int _zipcode = 0,
-                         int _customerType = 0)
+                         string _customerType = null)
         {
             this._custId = _custId;
             this._street = _street;
@@ -50,7 +49,7 @@ namespace SQLStressTest
         public string City { get { return _city; } set { _city = value; } }
         public string State { get { return _state; } set { _state = value; } }
         public int Zipcode { get { return _zipcode; } set { _zipcode = value; } }
-        public int CustomerType { get { return _customerType; } set { _customerType = value; } }
+        public string CustomerType { get { return _customerType; } set { _customerType = value; } }
         public string FirstName { get { return _firstName; } set { _firstName = value; } }
         public string LastName { get { return _lastName; } set { _lastName = value; } }
         public static int NumCust { get { return _numCust; } }

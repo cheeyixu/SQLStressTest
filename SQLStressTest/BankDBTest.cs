@@ -12,6 +12,8 @@ namespace SQLStressTest
     {
         public static string connetionString = "Data Source=SQL-SRV-2016\\SQLSRV2016;Initial Catalog=BankTestDB;User ID=sa;Password=";
         public static SqlConnection cnn = null;
+        private static string[] IndividualCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Phone", "Age", "Gender", "Street", "City", "State", "Postal_Code" };
+        private static string[] EnterpriseCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Organization_Name", "Organization_Type", "Street", "City", "State", "Postal_Code" };
 
         public enum Gender
         {
@@ -43,17 +45,28 @@ namespace SQLStressTest
             string pwd = Console.ReadLine();
             connetionString += pwd;
 
-            cnn = new SqlConnection(connetionString);
-            try
+            using (cnn = new SqlConnection(connetionString))
             {
-                cnn.Open();
-                Console.WriteLine("Connection Open ! ");
+                try
+                {
+                    cnn.Open();
+                    Console.WriteLine("Connection Open ! ");
+                    IndividualCustomer customer = (IndividualCustomer)CreateCustomer(_CustomerType.Individual);
+                    string[] values = { customer.CustomerType, customer.FirstName, customer.LastName, customer.PhoneNo.ToString(), customer.Age.ToString(), customer.Gender.ToString(), customer.Street, customer.City, customer.State, customer.Zipcode.ToString() };
+                    string strCommand = SqlInsert("Customer", IndividualCustomerColumns, values);
+                    Console.WriteLine(strCommand);
+                    using (SqlCommand command = new SqlCommand(strCommand, cnn))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                   
 
-                cnn.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Can not open connection ! " + ex.ToString());
+                    cnn.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Can not open connection ! " + ex.ToString());
+                }
             }
         }
 
@@ -71,7 +84,7 @@ namespace SQLStressTest
                 {
                     FirstName = name.FirstName(),
                     LastName = name.LastName(),
-                    CustomerType = (int)type,
+                    CustomerType = type.ToString(),
                     Street = address.StreetName(),
                     City = address.City(),
                     State = address.State(),
@@ -89,7 +102,7 @@ namespace SQLStressTest
                 {
                     FirstName = name.FirstName(),
                     LastName = name.LastName(),
-                    CustomerType = (int)type,
+                    CustomerType = type.ToString(),
                     Street = address.StreetName(),
                     City = address.City(),
                     State = address.State(),
@@ -99,6 +112,84 @@ namespace SQLStressTest
                 };
             }
             else return null;
+        }
+
+        private static Account CreateAccount()
+        {
+            
+            return null;
+        }
+
+        private static string SqlInsert(string table, string[] columns, string[] values)
+        {
+            string strColumn = "", strValue = "";
+
+            for(int i = 0; i < Math.Max(columns.Length, values.Length); i++)
+            {
+                try
+                {
+                    strColumn += columns[i];
+                    if (i != columns.Length - 1)
+                        strColumn += ", ";
+
+                    try
+                    {
+                        int.Parse(values[i]);
+                        strValue += values[i];
+                        if (i != values.Length - 1)
+                            strValue += ", ";
+                    }
+                    catch
+                    {
+                        strValue += "'" + values[i] + "'";
+                        if (i != values.Length - 1)
+                            strValue += ", ";
+                    }
+                }
+                catch
+                {
+                    if (columns.Length > values.Length)
+                    {
+                        strColumn += columns[i];
+                        if (i != columns.Length - 1)
+                            strColumn += ", ";
+                    }
+
+                    else if (values.Length > columns.Length)
+                    {
+                        strValue += values[i];
+                        if (i != values.Length - 1)
+                            strValue += ", ";
+                    }
+                }
+            }
+
+            return "INSERT INTO " + table + " (" + strColumn + ") VALUES (" + strValue + ")";
+        }
+
+        private static string SqlUpdate(string table, string[] assignments, string conditions = null)
+        {
+            string strAssignment = "";
+            
+            for(int i = 0; i < assignments.Length; i++)
+            {
+                strAssignment += assignments[i];
+                if (i != assignments.Length - 1)
+                    strAssignment += ", ";
+            }
+
+            if (conditions == null)
+                return "UPDATE " + table + " SET " + strAssignment;
+            else
+                return "UPDATE " + table + " SET " + strAssignment + " WHERE " + conditions;
+        }
+
+        private static string SqlDelete(string table, string conditions = null)
+        {
+            if (conditions == null)
+                return "DELETE FROM " + table;
+            else 
+                return "DELETE FROM " + table + " WHERE " + conditions;
         }
 
         private static void CreateCommand(string queryString, string connectionString)
