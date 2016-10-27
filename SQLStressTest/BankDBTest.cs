@@ -13,9 +13,10 @@ namespace SQLStressTest
     {
         public static string connetionString = "Data Source=SQL-SRV-2016\\SQLSRV2016;Initial Catalog=BankTestDB;User ID=sa;Password=";
         public static SqlConnection cnn = null;
-        private static string[] IndividualCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Phone", "Age", "Gender" };
-        private static string[] EnterpriseCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Organization_Name", "Organization_Type" };
-        private static string[] AccountColumns = { "Account_Type", "Status", "Balance", "Customer_Id" };
+        private static readonly string[] IndividualCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Phone", "Age", "Gender" };
+        private static readonly string[] EnterpriseCustomerColumns = { "Customer_Type", "First_Name", "Last_Name", "Street", "City", "State", "Postal_Code", "Organization_Name", "Organization_Type" };
+        private static readonly string[] AccountColumns = { "Account_Type", "Status", "Balance", "Customer_Id" };
+        private static readonly string[] TransactionColumns = { "Timestamp", "Amount", "Description", "Account_Id_To", "Account_Id_From" };
 
         public enum _Gender
         {
@@ -58,6 +59,10 @@ namespace SQLStressTest
 
         public static void Main(string[] args)
         {
+            CreateTransaction();
+            Console.ReadLine();
+            return;
+
             Console.Write("Enter password: ");
             string pwd = Console.ReadLine();
             connetionString += pwd;
@@ -77,7 +82,7 @@ namespace SQLStressTest
                     Console.WriteLine("Can not open connection ! " + ex.ToString());
                 }
             }
-            /*Console.ReadLine();*/
+            Console.ReadLine();
         }
 
         private static Customer CreateCustomer(_CustomerType type)
@@ -126,15 +131,32 @@ namespace SQLStressTest
 
         private static Account CreateAccount()
         {
-            Randomizer rand = new Randomizer();
+            var rand = new Randomizer();
 
             return new Account()
             {
                 AccountType = rand.Enum<_AccountType>().ToString(),
                 Status = rand.Enum<_AccountStatus>().ToString(),
                 Balance = rand.Number(0, 1000000),
-                CustId = rand.Number(0, 10000000)
+                CustId = rand.Number(0, 1000000)
             };
+        }
+
+        private static Transaction CreateTransaction()
+        {
+            var timestamp = new Bogus.DataSets.Date();  //Not sure if varchar (eg. 10/11/2016 12:41:39 PM) or int (eg.201610111241) is better
+            var rand = new Randomizer();
+
+            Transaction transaction = new Transaction();
+
+            transaction.TimeStamp = int.Parse(timestamp.Recent(100).ToString("yyyyMMddHHmmss"));
+            transaction.AccIdFrom = rand.Number(1, 100000);
+            transaction.AccIdTo = rand.Number(1, 100000);
+            transaction.Amount = rand.Number(1, 999999);
+            //transaction
+
+
+            return transaction;
         }
 
         private static string SqlInsert(string table, string[] columns, string[] values)
@@ -281,6 +303,7 @@ namespace SQLStressTest
             {
                 var acc = CreateAccount();
                 strCommand = SqlInsert("Account", AccountColumns, ToValueArray(acc));
+                Console.WriteLine(strCommand);
 
                 using (SqlCommand command = new SqlCommand(strCommand, cnn))
                 {
@@ -291,7 +314,8 @@ namespace SQLStressTest
                     }
                     catch (SqlException ex)
                     {
-                        if (ex.ErrorCode == 547)    //Referential Integrity error. Try again with another Account.Customer_Id
+                        //Referential Integrity error. Try again with another Account.Customer_Id. Can't find/think of better way of doing foreign key checking.
+                        if (ex.ErrorCode == 547)   
                         {
                             i--;
                             continue;
