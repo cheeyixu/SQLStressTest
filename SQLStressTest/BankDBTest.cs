@@ -80,7 +80,7 @@ namespace SQLStressTest
                     Console.WriteLine(ex.ToString());
                 }
             }
-            //Console.ReadLine();
+            Console.ReadLine();
         }
 
         private static Customer CreateCustomer(_CustomerType type)
@@ -370,6 +370,98 @@ namespace SQLStressTest
                     }
                 }
                 //Not sure if I need to dispose the object here for every iteration, need to read MSDN about this
+            }
+        }
+
+        private static void CreateTablesAndConstraints(SqlConnection cnn)
+        {
+            string[] strCommand = { @"CREATE TABLE [dbo].[Account](
+                                        [Account_Id] [int] IDENTITY(1,1) NOT NULL, 
+                                        [Account_Type][varchar](50) NOT NULL,
+                                        [Status] [varchar](10) NOT NULL,
+                                        [Balance] [int] NOT NULL,
+                                        [Customer_Id] [int] NOT NULL,
+                                    CONSTRAINT[PK_Account] PRIMARY KEY CLUSTERED
+                                    (
+                                        [Account_Id] ASC
+                                    )WITH(PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON[PRIMARY]
+                                    ) ON[PRIMARY]",
+
+                                    @"CREATE TABLE [dbo].[Customer]( 
+                                        [Customer_Id] [int] IDENTITY(1,1) NOT NULL,
+                                        [Customer_Type] [varchar](10) NOT NULL,
+                                        [First_Name] [varchar](50) NOT NULL,
+                                        [Last_Name] [varchar](50) NOT NULL,
+                                        [Phone] [int] NULL,
+                                        [Age] [int] NULL,
+                                        [Gender] [int] NULL,
+                                        [Street] [varchar](50) NULL,
+                                        [City] [varchar](50) NULL,
+                                        [State] [varchar](50) NULL,
+                                        [Postal_Code] [int] NULL,
+                                        [Organization_Name] [varchar](50) NULL,
+                                        [Organization_Type] [varchar](50) NULL,
+                                    CONSTRAINT[PK_Individual Customer] PRIMARY KEY CLUSTERED
+                                    (
+                                        [Customer_Id] ASC
+                                    )WITH(PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON[PRIMARY]
+                                    ) ON[PRIMARY]",
+
+                                    @"CREATE TABLE [dbo].[Transaction](
+	                                [Transaction_Id] [int] IDENTITY(1,1) NOT NULL,
+	                                [Timestamp] [varchar](30) NOT NULL,
+	                                [Amount] [int] NOT NULL,
+	                                [Description] [varchar](255) NOT NULL,
+	                                [Account_Id_To] [int] NOT NULL,
+	                                [Account_Id_From] [int] NOT NULL,
+                                    CONSTRAINT [PK_Transaction] PRIMARY KEY CLUSTERED 
+                                    (
+	                                    [Transaction_Id] ASC
+                                    )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+                                    ) ON [PRIMARY]",
+
+                                     @"CREATE FUNCTION [dbo].[CheckAmount]
+                                        (@AccFrom INTEGER, @Amount INTEGER)
+                                        RETURNS INTEGER
+                                        AS 
+                                        BEGIN
+                                        DECLARE @value INTEGER;
+
+                                        SET @value = CASE WHEN (SELECT Balance FROM Account WITH(NOLOCK) WHERE Account_Id = @AccFrom) >= @Amount THEN 1 ELSE 0 END 
+                                        RETURN @value
+                                        END",
+
+                                    @"ALTER TABLE [dbo].[Account]  WITH CHECK ADD  CONSTRAINT [FK_Account_Customer] FOREIGN KEY([Customer_Id])
+                                        REFERENCES [dbo].[Customer] ([Customer_Id])
+                                        ON UPDATE CASCADE
+                                        ON DELETE CASCADE",
+
+                                    "ALTER TABLE [dbo].[Account] CHECK CONSTRAINT [FK_Account_Customer]",
+
+                                    @"ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [FK_Transaction_Account_From] FOREIGN KEY([Account_Id_From])
+                                        REFERENCES [dbo].[Account] ([Account_Id])",
+
+                                    "ALTER TABLE [dbo].[Transaction] CHECK CONSTRAINT [FK_Transaction_Account_From]",
+
+                                    @"ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [FK_Transaction_Account_To] FOREIGN KEY([Account_Id_To])
+                                        REFERENCES [dbo].[Account] ([Account_Id])",
+
+                                    "ALTER TABLE [dbo].[Transaction] CHECK CONSTRAINT [FK_Transaction_Account_To]",
+
+                                    "ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [chk_Balance] CHECK  (([dbo].[CheckAmount]([Account_Id_From],[Amount])=(1)))",
+
+                                    "ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [chk_Parties] CHECK  (([Account_Id_From]<>[Account_Id_To]))",
+
+                                    "ALTER TABLE [dbo].[Transaction] CHECK CONSTRAINT [chk_Parties]"
+
+            };
+
+            for (int i = 0; i < strCommand.Length; i++)
+            {
+                using (SqlCommand command = new SqlCommand(strCommand[i], cnn))
+                {
+                    command.ExecuteNonQuery();
+                }
             }
         }
     }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SQLStressTest
 {
-    public class Transaction : IDisposable
+    public class Transaction
     {
         private int _txnId;
         private string _timeStamp;
