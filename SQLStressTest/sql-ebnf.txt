@@ -1,0 +1,47 @@
+all_characters          = ? all visible characters ? ;
+alphabetic_character    = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+                        | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+                        | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+                        | "V" | "W" | "X" | "Y" | "Z" | "a" | "b"
+                        | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+                        | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+                        | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+                        | "x" | "y" | "z" ;
+digit                   = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+number                  = [ "-" ], digit, { digit }, [ ".", digit, { digit } ];
+string                  = "'" , { all_characters }, "'" ;
+white_space             = ? white space characters ? ;
+starting_symbol         = "_" | "@" | "#";
+subsequent_symbol       = starting_symbol | "$";
+
+datatype            = 'int' | 'varchar' ;
+logical_operator    = 'AND' | 'OR' | 'NOT';
+operator            = "=" | ">" | "<" | ">=" | "<=" | ( white_space, 'LIKE', white_space ) ;
+
+condition           = identifier , operator , ( number | identifier | string ) ;
+conditions          = condition | ( conditions, white_space, logical_operator, white_space, conditions ) | ( "(" , conditions , ")" ) ;
+identifier          = ( ( alphabetic_character | starting_symbol ), { alphabetic_character | digit | subsequent_symbol } ) | ( [identifier, "."], identifier ) ;
+identifiers         = identifier | ( identifiers, ",", identifiers ) ;
+value               = number | string;
+values              = value | ( values, ",", values ) ;
+assignment          = identifier, "=", value ;
+assignments         = assignment | ( assignments, ",", assignments ) ;
+column_definition   = identifier, white_space, datatype_spec;
+column_definitions  = column_definition | ( column_definitions, ",", column_definitions ) ;
+datatype_spec       = datatype [ "(", (number | 'max'), ")" ] ;
+
+select_statement    = 'SELECT', white_space, identifiers, white_space,
+                        'FROM', white_space, identifiers,
+                        [ white_space, 'WHERE', white_space, conditions ];
+
+insert_statement    = 'INSERT INTO', white_space, identifier,
+                        [ "(", identifiers, ")" ], white_space, 'VALUES', "(", values, ")" ;
+
+update_statement    = 'UPDATE' white_space, identifier, white_space,
+                        'SET', white_space, assignments,
+                        [ white_space, 'WHERE', white_space, conditions ] ;
+
+delete_statement    = 'DELETE FROM', white_space, identifier,
+                        [ white_space, 'WHERE', white_space, conditions ] ;
+
+create_statement    = 'CREATE TABLE', white_space, identifier, "(" column_definitions ")" ;

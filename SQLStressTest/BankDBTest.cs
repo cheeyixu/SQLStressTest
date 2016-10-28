@@ -168,20 +168,20 @@ namespace SQLStressTest
                 {
                     strColumn += columns[i];
                     if (i != columns.Length - 1)
-                        strColumn += ", ";
+                        strColumn += ",";
 
                     try
                     {
                         int.Parse(values[i]);
                         strValue += values[i];
                         if (i != values.Length - 1)
-                            strValue += ", ";
+                            strValue += ",";
                     }
                     catch
                     {
                         strValue += "'" + values[i] + "'";
                         if (i != values.Length - 1)
-                            strValue += ", ";
+                            strValue += ",";
                     }
                 }
                 catch
@@ -190,19 +190,19 @@ namespace SQLStressTest
                     {
                         strColumn += columns[i];
                         if (i != columns.Length - 1)
-                            strColumn += ", ";
+                            strColumn += ",";
                     }
 
                     else if (values.Length > columns.Length)
                     {
                         strValue += values[i];
                         if (i != values.Length - 1)
-                            strValue += ", ";
+                            strValue += ",";
                     }
                 }
             }
 
-            return "INSERT INTO " + table + " (" + strColumn + ") VALUES (" + strValue + ")";
+            return "INSERT INTO " + table + "(" + strColumn + ") VALUES(" + strValue + ")";
         }
 
         private static string SqlUpdate(string table, string[] assignments, string conditions = null)
@@ -213,7 +213,7 @@ namespace SQLStressTest
             {
                 strAssignment += assignments[i];
                 if (i != assignments.Length - 1)
-                    strAssignment += ", ";
+                    strAssignment += ",";
             }
 
             if (conditions == null)
@@ -311,7 +311,7 @@ namespace SQLStressTest
             while (i < numAcc)
             {
                 var acc = CreateAccount();
-                strCommand = SqlInsert("Account", AccountColumns, ToValueArray(acc));
+                strCommand = SqlInsert("Acc", AccountColumns, ToValueArray(acc));
 
                 using (SqlCommand command = new SqlCommand(strCommand, cnn))
                 {
@@ -323,6 +323,7 @@ namespace SQLStressTest
                     catch (SqlException ex)
                     {
                         //Referential Integrity error. Try again with another Account.Customer_Id. Can't find/think of better way of doing foreign key checking.
+                        //EDIT: even though no longer have constraints, still no harm doing checking
                         if (ex.ErrorCode == 547)   
                         {
                             i--;
@@ -375,85 +376,11 @@ namespace SQLStressTest
 
         private static void CreateTablesAndConstraints(SqlConnection cnn)
         {
-            string[] strCommand = { @"CREATE TABLE [dbo].[Account](
-                                        [Account_Id] [int] IDENTITY(1,1) NOT NULL, 
-                                        [Account_Type][varchar](50) NOT NULL,
-                                        [Status] [varchar](10) NOT NULL,
-                                        [Balance] [int] NOT NULL,
-                                        [Customer_Id] [int] NOT NULL,
-                                    CONSTRAINT[PK_Account] PRIMARY KEY CLUSTERED
-                                    (
-                                        [Account_Id] ASC
-                                    )WITH(PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON[PRIMARY]
-                                    ) ON[PRIMARY]",
-
-                                    @"CREATE TABLE [dbo].[Customer]( 
-                                        [Customer_Id] [int] IDENTITY(1,1) NOT NULL,
-                                        [Customer_Type] [varchar](10) NOT NULL,
-                                        [First_Name] [varchar](50) NOT NULL,
-                                        [Last_Name] [varchar](50) NOT NULL,
-                                        [Phone] [int] NULL,
-                                        [Age] [int] NULL,
-                                        [Gender] [int] NULL,
-                                        [Street] [varchar](50) NULL,
-                                        [City] [varchar](50) NULL,
-                                        [State] [varchar](50) NULL,
-                                        [Postal_Code] [int] NULL,
-                                        [Organization_Name] [varchar](50) NULL,
-                                        [Organization_Type] [varchar](50) NULL,
-                                    CONSTRAINT[PK_Individual Customer] PRIMARY KEY CLUSTERED
-                                    (
-                                        [Customer_Id] ASC
-                                    )WITH(PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON[PRIMARY]
-                                    ) ON[PRIMARY]",
-
-                                    @"CREATE TABLE [dbo].[Transaction](
-	                                [Transaction_Id] [int] IDENTITY(1,1) NOT NULL,
-	                                [Timestamp] [varchar](30) NOT NULL,
-	                                [Amount] [int] NOT NULL,
-	                                [Description] [varchar](255) NOT NULL,
-	                                [Account_Id_To] [int] NOT NULL,
-	                                [Account_Id_From] [int] NOT NULL,
-                                    CONSTRAINT [PK_Transaction] PRIMARY KEY CLUSTERED 
-                                    (
-	                                    [Transaction_Id] ASC
-                                    )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-                                    ) ON [PRIMARY]",
-
-                                     @"CREATE FUNCTION [dbo].[CheckAmount]
-                                        (@AccFrom INTEGER, @Amount INTEGER)
-                                        RETURNS INTEGER
-                                        AS 
-                                        BEGIN
-                                        DECLARE @value INTEGER;
-
-                                        SET @value = CASE WHEN (SELECT Balance FROM Account WITH(NOLOCK) WHERE Account_Id = @AccFrom) >= @Amount THEN 1 ELSE 0 END 
-                                        RETURN @value
-                                        END",
-
-                                    @"ALTER TABLE [dbo].[Account]  WITH CHECK ADD  CONSTRAINT [FK_Account_Customer] FOREIGN KEY([Customer_Id])
-                                        REFERENCES [dbo].[Customer] ([Customer_Id])
-                                        ON UPDATE CASCADE
-                                        ON DELETE CASCADE",
-
-                                    "ALTER TABLE [dbo].[Account] CHECK CONSTRAINT [FK_Account_Customer]",
-
-                                    @"ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [FK_Transaction_Account_From] FOREIGN KEY([Account_Id_From])
-                                        REFERENCES [dbo].[Account] ([Account_Id])",
-
-                                    "ALTER TABLE [dbo].[Transaction] CHECK CONSTRAINT [FK_Transaction_Account_From]",
-
-                                    @"ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [FK_Transaction_Account_To] FOREIGN KEY([Account_Id_To])
-                                        REFERENCES [dbo].[Account] ([Account_Id])",
-
-                                    "ALTER TABLE [dbo].[Transaction] CHECK CONSTRAINT [FK_Transaction_Account_To]",
-
-                                    "ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [chk_Balance] CHECK  (([dbo].[CheckAmount]([Account_Id_From],[Amount])=(1)))",
-
-                                    "ALTER TABLE [dbo].[Transaction]  WITH CHECK ADD  CONSTRAINT [chk_Parties] CHECK  (([Account_Id_From]<>[Account_Id_To]))",
-
-                                    "ALTER TABLE [dbo].[Transaction] CHECK CONSTRAINT [chk_Parties]"
-
+            //Account is a reserved word in SQL, not sure if it will work without surrounded by [..], therefore I changed to Acc
+            string[] strCommand = {
+                "CREATE TABLE Acc(Account_Id int,Account_Type varchar(50),Status varchar(10),Balance int,Customer_Id int)",
+                "CREATE TABLE Customer(Customer_Id int,Customer_Type varchar(10),First_Name varchar(50),Last_Name varchar(50),Phone int,Age int,Gender int,Street varchar(50),City varchar(50),State varchar(50),Postal_Code int,Organization_Name varchar(50),Organization_Type varchar(50))",
+                "CREATE TABLE Transaction(Transaction_Id int,Timestamp varchar(30),Amount int,Description varchar(255),Account_Id_To int,Account_Id_From int)"
             };
 
             for (int i = 0; i < strCommand.Length; i++)
